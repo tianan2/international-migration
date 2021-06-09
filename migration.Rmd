@@ -1,0 +1,68 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+theme_set(theme_classic())
+options(scipen = 999)
+
+migration_stock_raw <- read_excel("~/Downloads/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx", sheet = 2, skip = 8) %>% janitor::clean_names() %>% select(-x1, -notes, -type_of_data) 
+
+migration_pct_raw <- read_excel("~/Downloads/undesa_pd_2020_ims_stock_by_sex_and_destination.xlsx", sheet = 4, skip = 8) %>% janitor::clean_names() %>% select(-x1, -notes, -type_of_data) 
+```
+
+
+```{r}
+p1 <- migration_stock_raw %>% 
+  select(region_development_group_country_or_area, x1990_6:x2020_12) %>% 
+  pivot_longer(x1990_6:x2020_12, names_to = "year") %>% 
+  mutate(year = as.numeric(str_extract(year, "\\d\\d\\d\\d")), 
+         value = as.numeric(value)) %>% 
+  filter(region_development_group_country_or_area == "WORLD") %>% 
+  ggplot(aes(year, value)) +
+  geom_point(alpha = .8, size = 2.5) +
+  geom_line(size = 1.5) +
+  scale_y_continuous(limits = c(100000000, 300000000),
+                     breaks = seq(100000000, 300000000, 50000000), 
+                     labels = c("100", "150", "200", "250", "300 million")) +
+  labs(x = NULL, 
+       y = NULL, 
+       caption = "Data Source: UN Department of Economic and Social Affairs")
+```
+
+
+```{r}
+p2 <- migration_pct_raw %>% 
+  select(region_development_group_country_or_area, x1990_6:x2020_12) %>% 
+  pivot_longer(x1990_6:x2020_12, names_to = "year") %>% 
+  mutate(year = as.numeric(str_extract(year, "\\d\\d\\d\\d")), 
+         value = as.numeric(value) / 100) %>% 
+  filter(region_development_group_country_or_area == "WORLD") %>% 
+  ggplot(aes(year, value)) +
+  geom_point(alpha = .8, size = 2.5) +
+  geom_line(size = 1.5) +
+  scale_y_continuous(limits = c(.025, .04), 
+                     labels = scales::percent_format()) +
+  labs(x = NULL, 
+       y = NULL, 
+       caption = "Data Source: UN Department of Economic and Social Affairs")
+```
+
+
+
+```{r}
+library(gridExtra)
+
+grid.arrange(p1, p2, nrow = 1)
+ggsave(filename = "figs/international_migration_stock.pdf", width = 8, height = 5)
+```
+
+
+
